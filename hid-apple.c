@@ -63,6 +63,12 @@ MODULE_PARM_DESC(swap_fn_leftctrl, "Swap the Fn and left Control keys. "
 		"(For people who want to keep PC keyboard muscle memory. "
 		"[0] = as-is, Mac layout, 1 = swapped, PC layout)");
 
+static unsigned int swap_ctrl_cmd;
+module_param(swap_ctrl_cmd, uint, 0644);
+MODULE_PARM_DESC(swap_ctrl_cmd, "Swap the left Control and Command keys. "
+		"(For people who are used to using command instead of control. "
+		"[0] = disabled, 1 = swapped)");
+
 struct apple_sc_backlight {
 	struct led_classdev cdev;
 	struct hid_device *hdev;
@@ -261,12 +267,20 @@ static const struct apple_key_translation swapped_option_cmd_keys[] = {
 	{ KEY_LEFTALT,	KEY_LEFTMETA },
 	{ KEY_LEFTMETA,	KEY_LEFTALT },
 	{ KEY_RIGHTALT,	KEY_RIGHTMETA },
-	{ KEY_RIGHTMETA,KEY_RIGHTALT },
+	{ KEY_RIGHTMETA,	KEY_RIGHTALT },
 	{ }
 };
 
 static const struct apple_key_translation swapped_fn_leftctrl_keys[] = {
 	{ KEY_FN, KEY_LEFTCTRL },
+	{ }
+};
+
+static const struct apple_key_translation swapped_ctrl_cmd_keys[] = {
+	{ KEY_LEFTCTRL,	KEY_LEFTMETA },
+	{ KEY_LEFTMETA,	KEY_LEFTCTRL },
+	{ KEY_RIGHTCTRL,	KEY_RIGHTMETA },
+	{ KEY_RIGHTMETA,	KEY_RIGHTCTRL },
 	{ }
 };
 
@@ -409,6 +423,15 @@ static int hidinput_apple_event(struct hid_device *hid, struct input_dev *input,
 
 	if (swap_fn_leftctrl) {
 		trans = apple_find_translation(swapped_fn_leftctrl_keys, usage->code);
+		if (trans) {
+			input_event_with_scancode(input, usage->type,
+					trans->to, usage->hid, value);
+			return 1;
+		}
+	}
+
+	if (swap_ctrl_cmd) {
+		trans = apple_find_translation(swapped_ctrl_cmd_keys, usage->code);
 		if (trans) {
 			input_event_with_scancode(input, usage->type,
 					trans->to, usage->hid, value);
