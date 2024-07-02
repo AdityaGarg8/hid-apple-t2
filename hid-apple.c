@@ -8,6 +8,8 @@
  *  Copyright (c) 2006-2007 Jiri Kosina
  *  Copyright (c) 2008 Jiri Slaby <jirislaby@gmail.com>
  *  Copyright (c) 2019 Paul Pawlowski <paul@mrarm.io>
+ *  Copyright (c) 2023 Orlando Chamberlain <orlandoch.dev@gmail.com>
+ *  Copyright (c) 2024 Aditya Garg <gargaditya08@live.com>
  */
 
 /*
@@ -864,7 +866,6 @@ static int apple_magic_backlight_led_set(struct led_classdev *led_cdev,
 static int apple_magic_backlight_init(struct hid_device *hdev)
 {
 	struct apple_magic_backlight *backlight;
-	int rc;
 
 	/*
 	 * Ensure this usb endpoint is for the keyboard backlight, not touchbar
@@ -882,10 +883,8 @@ static int apple_magic_backlight_init(struct hid_device *hdev)
 	backlight->power = hid_register_report(hdev, HID_FEATURE_REPORT,
 			APPLE_MAGIC_REPORT_ID_POWER, 0);
 
-	if (!backlight->brightness || !backlight->power) {
-		rc = -ENODEV;
-		goto hw_stop;
-	}
+	if (!backlight->brightness || !backlight->power)
+		return -ENODEV;
 
 	backlight->cdev.name = ":white:" LED_FUNCTION_KBD_BACKLIGHT;
 	backlight->cdev.max_brightness = backlight->brightness->field[0]->logical_maximum;
@@ -895,9 +894,6 @@ static int apple_magic_backlight_init(struct hid_device *hdev)
 
 	return devm_led_classdev_register(&hdev->dev, &backlight->cdev);
 
-hw_stop:
-	hid_hw_stop(hdev);
-	return rc;
 }
 
 static int apple_probe(struct hid_device *hdev,
@@ -938,8 +934,14 @@ static int apple_probe(struct hid_device *hdev,
 	if (quirks & APPLE_BACKLIGHT_CTL)
 		apple_backlight_init(hdev);
 
-	if (quirks & APPLE_MAGIC_BACKLIGHT)
-		apple_magic_backlight_init(hdev);
+	if (quirks & APPLE_MAGIC_BACKLIGHT) {
+		ret = apple_magic_backlight_init(hdev);
+		if (ret) {
+			del_timer_sync(&asc->battery_timer);
+			hid_hw_stop(hdev);
+			return ret;
+		}
+	}
 
 	return 0;
 }
