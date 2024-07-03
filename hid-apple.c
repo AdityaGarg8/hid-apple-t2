@@ -40,8 +40,8 @@
 #define APPLE_NUMLOCK_EMULATION	BIT(8)
 #define APPLE_RDESC_BATTERY	BIT(9)
 #define APPLE_BACKLIGHT_CTL	BIT(10)
-#define APPLE_MAGIC_BACKLIGHT	BIT(11)
-#define APPLE_IS_NON_APPLE	BIT(12)
+#define APPLE_IS_NON_APPLE	BIT(11)
+#define APPLE_MAGIC_BACKLIGHT	BIT(12)
 
 #define APPLE_FLAG_FKEY		0x01
 
@@ -866,6 +866,7 @@ static int apple_magic_backlight_led_set(struct led_classdev *led_cdev,
 static int apple_magic_backlight_init(struct hid_device *hdev)
 {
 	struct apple_magic_backlight *backlight;
+	struct hid_report_enum *report_enum;
 
 	/*
 	 * Ensure this usb endpoint is for the keyboard backlight, not touchbar
@@ -878,10 +879,9 @@ static int apple_magic_backlight_init(struct hid_device *hdev)
 	if (!backlight)
 		return -ENOMEM;
 
-	backlight->brightness = hid_register_report(hdev, HID_FEATURE_REPORT,
-			APPLE_MAGIC_REPORT_ID_BRIGHTNESS, 0);
-	backlight->power = hid_register_report(hdev, HID_FEATURE_REPORT,
-			APPLE_MAGIC_REPORT_ID_POWER, 0);
+	report_enum = &hdev->report_enum[HID_FEATURE_REPORT];
+	backlight->brightness = report_enum->report_id_hash[APPLE_MAGIC_REPORT_ID_BRIGHTNESS];
+	backlight->power = report_enum->report_id_hash[APPLE_MAGIC_REPORT_ID_POWER];
 
 	if (!backlight->brightness || !backlight->power)
 		return -ENODEV;
@@ -936,14 +936,16 @@ static int apple_probe(struct hid_device *hdev,
 
 	if (quirks & APPLE_MAGIC_BACKLIGHT) {
 		ret = apple_magic_backlight_init(hdev);
-		if (ret) {
-			del_timer_sync(&asc->battery_timer);
-			hid_hw_stop(hdev);
-			return ret;
-		}
+		if (ret)
+			goto out_err;
 	}
 
 	return 0;
+
+out_err:
+	del_timer_sync(&asc->battery_timer);
+	hid_hw_stop(hdev);
+	return ret;
 }
 
 static void apple_remove(struct hid_device *hdev)
