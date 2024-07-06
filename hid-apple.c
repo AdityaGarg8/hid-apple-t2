@@ -819,7 +819,7 @@ static int apple_backlight_init(struct hid_device *hdev)
 	}
 
 	asc->backlight->hdev = hdev;
-	asc->backlight->cdev.name = "apple::kbd_backlight";
+	asc->backlight->cdev.name = ":white:" LED_FUNCTION_KBD_BACKLIGHT;
 	asc->backlight->cdev.max_brightness = rep->backlight_on_max;
 	asc->backlight->cdev.brightness_set_blocking = apple_backlight_led_set;
 
