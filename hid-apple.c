@@ -819,7 +819,7 @@ static int apple_backlight_init(struct hid_device *hdev)
 	}
 
 	asc->backlight->hdev = hdev;
-	asc->backlight->cdev.name = ":white:" LED_FUNCTION_KBD_BACKLIGHT;
+	asc->backlight->cdev.name = "apple::kbd_backlight";
 	asc->backlight->cdev.max_brightness = rep->backlight_on_max;
 	asc->backlight->cdev.brightness_set_blocking = apple_backlight_led_set;
 
@@ -1178,4 +1178,5 @@ static struct hid_driver apple_driver = {
 };
 module_hid_driver(apple_driver);
 
+MODULE_DESCRIPTION("Apple USB HID quirks support for Linux");
 MODULE_LICENSE("GPL");
